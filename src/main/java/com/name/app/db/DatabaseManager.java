@@ -3,28 +3,31 @@ package com.name.app.db;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
+import java.sql.Statement;
 
 public class DatabaseManager {
-
-    // File-based H2 DB — stored at ~/myapp-db/data (outside the project)
-    private static final String DB_URL = "jdbc:h2:~/myapp-db/data;AUTO_SERVER=TRUE";
-    private static final String DB_USER = "sa";
-    private static final String DB_PASSWORD = "";
-
-    static {
-        try {
-            Class.forName("org.h2.Driver");  // explicitly load the driver
-        } catch (ClassNotFoundException e) {
-            e.printStackTrace();
-            throw new RuntimeException("H2 Driver not found", e);
-        }
-    }
+    private static boolean initialized = false;
 
     public static Connection getConnection() throws SQLException {
-        return DriverManager.getConnection(DB_URL, DB_USER, DB_PASSWORD);
-    }
+        try {
+            Class.forName("org.h2.Driver");
+        } catch (ClassNotFoundException e) {
+            e.printStackTrace();
+        }
 
-    public static void main(String[] args) throws  Exception{
-        DatabaseManager.getConnection();
+        Connection conn = DriverManager.getConnection("jdbc:h2:~/excuses_db;MODE=PostgreSQL;DATABASE_TO_UPPER=FALSE;AUTO_SERVER=TRUE", "sa", "");
+
+        // יוצר את הטבלאות אוטומטית בחיבור הראשון אם הן לא קיימות
+        if (!initialized) {
+            try (Statement stmt = conn.createStatement()) {
+                stmt.execute("CREATE TABLE IF NOT EXISTS users (id INT AUTO_INCREMENT PRIMARY KEY, username VARCHAR(50), password VARCHAR(50))");
+                stmt.execute("CREATE TABLE IF NOT EXISTS excuses (id INT AUTO_INCREMENT PRIMARY KEY, excuse_text VARCHAR(255), age_group VARCHAR(10))");
+                initialized = true;
+            } catch (SQLException e) {
+                e.printStackTrace();
+            }
+        }
+
+        return conn;
     }
 }
